@@ -1,0 +1,208 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+)
+
+var mappedArea []string
+var visitedPos [][]int
+
+// downwards arrow will be represented by ?
+func main() {
+
+	readInput("input")
+	x, y := getGuardPosition(mappedArea)
+	visitedPos = make([][]int, 0)
+
+	copyMapArea := make([]string, len(mappedArea))
+	copy(copyMapArea, mappedArea)
+	for x < len(mappedArea[y])-1 && y < len(mappedArea)-1 && x > 0 && y > 0 {
+		if string(mappedArea[y][x]) == "^" {
+			if string(mappedArea[y-1][x]) == "#" {
+				changeDir(x, y, ">")
+			} else {
+				markAsVisited(x, y)
+				y--
+				changeDir(x, y, "^")
+			}
+		} else if string(mappedArea[y][x]) == ">" {
+			if string(mappedArea[y][x+1]) == "#" {
+				changeDir(x, y, "v")
+			} else {
+				markAsVisited(x, y)
+				x++
+				changeDir(x, y, ">")
+			}
+		} else if string(mappedArea[y][x]) == "<" {
+			if string(mappedArea[y][x-1]) == "#" {
+				changeDir(x, y, "^")
+			} else {
+				markAsVisited(x, y)
+				x--
+				changeDir(x, y, "<")
+
+			}
+		} else if string(mappedArea[y][x]) == "v" {
+			if string(mappedArea[y+1][x]) == "#" {
+				changeDir(x, y, "<")
+			} else {
+				markAsVisited(x, y)
+				y++
+				changeDir(x, y, "v")
+
+			}
+		}
+	}
+
+	fmt.Println("unique positions visited : ", countDistinctPos())
+	// fmt.Println(copyMapArea)
+	// fmt.Println(visitedPos)
+
+	putObstacleCount := 0
+	for _, val := range visitedPos {
+		mapArea := make([]string, len(mappedArea))
+		copy(mapArea, copyMapArea)
+		x := val[0]
+		y := val[1]
+		mapArea[y] = mapArea[y][:x] + "#" + mapArea[y][x+1:]
+		x, y = getGuardPosition(mapArea)
+		tookTurn := []pos{}
+		for x < len(mapArea[y])-1 && y < len(mapArea)-1 && x > 0 && y > 0 {
+			if string(mapArea[y][x]) == "^" {
+				if string(mapArea[y-1][x]) == "#" {
+					changeDir(x, y, ">")
+					if isTurnTaken(tookTurn, pos{x, y, "^"}) {
+						putObstacleCount++
+						break
+					} else {
+						tookTurn = append(tookTurn, pos{x, y, "^"})
+					}
+					tookTurn = append(tookTurn, pos{x, y, "^"})
+
+				} else {
+					markAsVisited(x, y)
+					y--
+					changeDir(x, y, "^")
+				}
+			} else if string(mapArea[y][x]) == ">" {
+				if string(mapArea[y][x+1]) == "#" {
+					changeDir(x, y, "v")
+					if isTurnTaken(tookTurn, pos{x, y, ">"}) {
+						putObstacleCount++
+						break
+					} else {
+						tookTurn = append(tookTurn, pos{x, y, ">"})
+					}
+					tookTurn = append(tookTurn, pos{x, y, ">"})
+
+				} else {
+					markAsVisited(x, y)
+					x++
+					changeDir(x, y, ">")
+				}
+			} else if string(mapArea[y][x]) == "<" {
+				if string(mapArea[y][x-1]) == "#" {
+					changeDir(x, y, "^")
+					if isTurnTaken(tookTurn, pos{x, y, "<"}) {
+						putObstacleCount++
+						break
+					} else {
+						tookTurn = append(tookTurn, pos{x, y, "<"})
+					}
+					tookTurn = append(tookTurn, pos{x, y, "<"})
+
+				} else {
+					markAsVisited(x, y)
+					x--
+					changeDir(x, y, "<")
+
+				}
+			} else if string(mapArea[y][x]) == "v" {
+				if string(mapArea[y+1][x]) == "#" {
+					changeDir(x, y, "<")
+					if isTurnTaken(tookTurn, pos{x, y, "v"}) {
+						putObstacleCount++
+						break
+					} else {
+						tookTurn = append(tookTurn, pos{x, y, "v"})
+					}
+					tookTurn = append(tookTurn, pos{x, y, "v"})
+
+				} else {
+					markAsVisited(x, y)
+					y++
+					changeDir(x, y, "v")
+
+				}
+			}
+		}
+
+	}
+}
+
+func isTurnTaken(tookTurn []pos, currTurn pos) bool {
+	for _, turn := range tookTurn {
+		if turn == currTurn {
+			return true
+		}
+	}
+	return false
+}
+
+type pos struct {
+	x   int
+	y   int
+	dir string
+}
+
+func markAsVisited(x int, y int) {
+	mappedArea[y] = mappedArea[y][:x] + "X" + mappedArea[y][x+1:]
+}
+
+func changeDir(x int, y int, direction string) {
+	mappedArea[y] = mappedArea[y][:x] + direction + mappedArea[y][x+1:]
+}
+
+func countDistinctPos() int {
+	count := 0
+	for y, Y := range mappedArea {
+		for x, X := range Y {
+			if X == 'v' || X == '>' || X == '<' || X == '^' {
+				markAsVisited(x, y)
+				X = 'x'
+			}
+			if X == 'X' {
+				visitedPos = append(visitedPos, []int{x, y})
+				count++
+			}
+		}
+	}
+	return count
+}
+
+func getGuardPosition(mapArea []string) (int, int) {
+	for y, Y := range mapArea {
+		for x, X := range Y {
+			if X == '^' {
+				return x, y
+			}
+		}
+	}
+	return -1, -1
+
+}
+
+func readInput(filename string) {
+	file, err := os.Open(filename)
+	if err != nil {
+		panic(err)
+	}
+	scanner := bufio.NewScanner(file)
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	mappedArea = lines
+}
