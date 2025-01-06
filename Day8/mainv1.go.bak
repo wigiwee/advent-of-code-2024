@@ -1,0 +1,147 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"time"
+)
+
+var cityMap []string = readInput("input")
+var antennas map[string][][]int = getAntennasMap()
+var antiNodes [][]int = getAllAntinodes()
+var xMax int = len(cityMap[0])
+var yMax int = len(cityMap)
+
+func main() {
+	start := time.Now()
+	fmt.Println(len(antiNodes))
+	fmt.Println(time.Since(start))
+}
+
+func getAntennasMap() map[string][][]int {
+	antennaMap := make(map[string][][]int)
+	for y, Y := range cityMap {
+		for x := range Y {
+			if cityMap[y][x] != '.' {
+				antennaMap[string(cityMap[y][x])] = append(antennaMap[string(cityMap[y][x])], []int{x, y})
+			}
+		}
+	}
+	return antennaMap
+}
+
+func getAllAntinodes() [][]int {
+	keys := make([]string, 0, len(antennas))
+	for k := range antennas {
+		keys = append(keys, k)
+	}
+	allAntiNodes := make([][]int, 0)
+	for _, key := range keys {
+		//part 1 nodes
+		allAntiNodes = append(allAntiNodes, getAntinodes(key)...)
+		//part 2 nodes	//comment line below to get Part1 result
+		allAntiNodes = append(allAntiNodes, getAntinodesP2(key)...)
+
+	}
+
+	uniqueAntiNodes := make([][]int, 0)
+	uniqueAntiNodes = append(uniqueAntiNodes, allAntiNodes[0])
+
+	for _, node := range allAntiNodes {
+		if !isPresent(uniqueAntiNodes, node) {
+			uniqueAntiNodes = append(uniqueAntiNodes, node)
+		}
+	}
+	return uniqueAntiNodes
+}
+
+func isPresent(slice [][]int, target []int) bool {
+	for _, node := range slice {
+		if node[0] == target[0] && node[1] == target[1] {
+			return true
+		}
+	}
+	return false
+}
+
+func getAntinodes(freq string) [][]int {
+	antinodes := make([][]int, 0)
+	antennasPos := antennas[freq]
+
+	for idx, Apos := range antennasPos {
+		for i := idx + 1; i < len(antennasPos); i++ {
+			Bpos := antennasPos[i]
+
+			nodeA := []int{Apos[0] + (Apos[0] - Bpos[0]), Apos[1] + (Apos[1] - Bpos[1])}
+			nodeB := []int{Bpos[0] + (Bpos[0] - Apos[0]), Bpos[1] + (Bpos[1] - Apos[1])}
+			if nodeA[0] >= 0 && nodeA[0] < xMax && nodeA[1] >= 0 && nodeA[1] < yMax {
+				antinodes = append(antinodes, nodeA)
+			}
+			if nodeB[0] >= 0 && nodeB[0] < xMax && nodeB[1] >= 0 && nodeB[1] < yMax {
+				antinodes = append(antinodes, nodeB)
+			}
+		}
+	}
+	return antinodes
+}
+
+// part 2
+func getAntinodesP2(freq string) [][]int {
+	antinodes := make([][]int, 0)
+	antennaPos := antennas[freq]
+	for idx, Apos := range antennaPos {
+		for i := idx + 1; i < len(antennaPos); i++ {
+			Bpos := antennaPos[i]
+
+			nodeA := []int{Apos[0] + (Apos[0] - Bpos[0]), Apos[1] + (Apos[1] - Bpos[1])}
+			nodeB := []int{Bpos[0] + (Bpos[0] - Apos[0]), Bpos[1] + (Bpos[1] - Apos[1])}
+
+			newNodeA := make([]int, 2)
+			newNodeB := make([]int, 2)
+
+			//adding nodes appearing at antenna A and antenna B
+			newNodeA[0] = Apos[0]
+			newNodeA[1] = Apos[1]
+			newNodeB[0] = Apos[0]
+			newNodeB[1] = Apos[1]
+			antinodes = append(antinodes, newNodeA)
+			antinodes = append(antinodes, newNodeB)
+
+			xa := nodeA[0]
+			ya := nodeA[1]
+			xb := nodeB[0]
+			yb := nodeB[1]
+			for xa >= 0 && xa < xMax && ya >= 0 && ya < yMax {
+				newNode := make([]int, 2)
+				newNode[0] = xa
+				newNode[1] = ya
+				antinodes = append(antinodes, nodeA)
+				xa += (Apos[0] - Bpos[0])
+				ya += (Apos[1] - Bpos[1])
+			}
+			for xb >= 0 && xb < xMax && yb > 0 && yb < yMax {
+				newNode := make([]int, 2)
+				newNode[0] = xb
+				newNode[1] = yb
+				antinodes = append(antinodes, newNode)
+				xb += Bpos[0] - Apos[0]
+				yb += Bpos[1] - Apos[1]
+			}
+		}
+	}
+	return antinodes
+}
+
+func readInput(filename string) []string {
+	file, err := os.Open(filename)
+	if err != nil {
+		panic(err)
+	}
+	scanner := bufio.NewScanner(file)
+	lines := make([]string, 0)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines
+}
