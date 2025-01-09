@@ -1,0 +1,1 @@
+   <img src="christmas-tree.png" width="80%" />
